@@ -1,0 +1,23 @@
+name: cron-new-product-announce
+
+# Auto-announces freshly published "New Arrival" products to the mailing list.
+# Hits the app's cron endpoint once a day. The endpoint itself dedupes, caps
+# the number of sends per run, and only emails when there's a new product.
+#
+# Requires repo secret CRON_SECRET to match the app's CRON_SECRET env var on
+# Railway. If CRON_SECRET is unset on Railway, the endpoint runs without auth.
+
+on:
+  schedule:
+    - cron: '0 16 * * *' # daily, 16:00 UTC
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/new-product-announce
+        run: |
+          curl -fsS -X POST "https://www.awulak.com/api/cron/new-product-announce" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP %{http_code}\n"

@@ -1,0 +1,24 @@
+name: cron-back-in-stock
+
+# Emails customers who asked to be notified once a sold-out product is
+# restocked. Hits the app's cron endpoint every few hours; the endpoint only
+# notifies requests whose product is published and back in stock, and stamps
+# each one so nobody is notified twice.
+#
+# Requires repo secret CRON_SECRET to match the app's CRON_SECRET env var on
+# Railway. If CRON_SECRET is unset on Railway, the endpoint runs without auth.
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # every 6 hours
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/back-in-stock
+        run: |
+          curl -fsS -X POST "https://www.awulak.com/api/cron/back-in-stock" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP %{http_code}\n"

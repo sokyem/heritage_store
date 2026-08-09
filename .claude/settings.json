@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /workspaces/Awula_k log --oneline --all)",
+      "Bash(npx expo:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls /workspaces/Awula_k/web/public/media/*.jpg /workspaces/Awula_k/web/public/media/*.jpeg)",
+      "Bash(npx next:*)",
+      "Bash(ls /workspaces/Awula_k/web/src/app/admin/*/page.tsx)",
+      "Bash(ls /workspaces/Awula_k/web/src/app/admin/*/*/page.tsx)",
+      "Bash(ls /workspaces/Awula_k/web/src/app/api/admin/*/route.ts)",
+      "Bash(railway status *)",
+      "Bash(railway variables *)",
+      "Bash(git add *)",
+      "Bash(git restore *)",
+      "Bash(railway logs *)",
+      "WebFetch(domain:developers.usps.com)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -X POST https://apis.usps.com/subscriptions-tracking/v3r2/subscriptions -H 'Authorization: Bearer __TRACKED_VAR__' -H 'Content-Type: application/json' -d '{ *)"
+    ],
+    "additionalDirectories": [
+      "/workspaces/Awula_k/web/src/app/api/admin/banners"
+    ]
+  }
+}

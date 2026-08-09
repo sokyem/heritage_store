@@ -1,0 +1,26 @@
+name: cron-usps-subscription
+
+# Keepalive for the USPS Subscriptions-Tracking webhook subscription.
+# USPS deletes a subscription after ~25 days with no delivered events. Since we
+# ship through EasyPost (not our own MID), the subscription on
+# /api/shipping/webhook/usps receives nothing and would be pruned. This pings the
+# renew endpoint weekly, which re-creates the subscription (resetting its 25-day
+# clock) — well inside the 50 USPS API calls/day quota.
+#
+# Optional repo secret CRON_SECRET; if the app's CRON_SECRET env var is unset
+# the endpoint runs without auth (matching the other cron-* workflows).
+
+on:
+  schedule:
+    - cron: '0 6 * * 1' # weekly, Monday 06:00 UTC
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/usps-subscription-renew
+        run: |
+          curl -fsS -X POST "https://www.awulak.com/api/cron/usps-subscription-renew" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP %{http_code}\n"

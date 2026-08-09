@@ -1,0 +1,1404 @@
+// ═══════════════════════════════════════════════════════════════════
+// AWULA_K — Complete Data Schema v3
+// Luxury Fashion Platform: Commerce + Custom Studio + Designer Network
+// ═══════════════════════════════════════════════════════════════════
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth & User Models ───────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String?
+  role      String   @default("customer") // customer, founder, staff, designer
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Marketing / mailing list. Customers are on the list by default; opting
+  // out flips marketingOptOut. marketingToken backs the one-click
+  // unsubscribe link so we never expose the email address in the URL.
+  // It's a random UUID (unique in practice); indexed for lookup, but NOT a
+  // DB unique constraint — adding one to this existing table makes
+  // `prisma db push` demand --accept-data-loss on deploy.
+  marketingOptOut Boolean   @default(false)
+  marketingToken  String?
+  unsubscribedAt  DateTime?
+
+  orders          Order[]
+  consultations   Consultation[]
+  measurements    Measurement[]
+  notifications   Notification[]
+  conversations   Conversation[] @relation("conversationParticipants")
+  messages        Message[]
+  payments        Payment[]
+  accounts        Account[]
+  sessions        Session[]
+  partnerDesigner PartnerDesigner?
+  productReviews  ProductReview[]
+  wishlistItems   Wishlist[]
+
+  @@index([marketingToken])
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Customer-Facing Commerce Models ──────────────────────────────
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  price       Float
+  description String
+  image       String?
+  createdAt   DateTime @default(now())
+
+  orders Order[]
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  userId        String
+  productId     String
+  measurementId String?
+  paymentId     String?
+  status        String   @default("pending")
+  customNotes   String?
+  amount        Float?
+  currency      String   @default("USD")
+
+  // Shipping Address
+  shippingName    String?
+  shippingAddress String?
+  shippingAddress2 String?
+  shippingCity    String?
+  shippingState   String?
+  shippingZip     String?
+  shippingCountry String?  @default("US")
+  shippingPhone   String?
+
+  // Selected shipping option (real rate quoted at checkout, charged with the order).
+  shippingCost    Float?
+  shippingService String?  // service code: e.g. "03" (UPS Ground) or "USPS_GROUND_ADVANTAGE"
+  shippingCarrier String?  // "UPS" | "USPS"
+
+  // Sales tax applied at checkout. Rate is admin-configurable in Settings
+  // → Business → taxRate. `tax` is the dollar amount; `amount` remains the
+  // total inclusive of subtotal + tax + shippingCost so existing reports
+  // and Stripe charges keep agreeing.
+  tax             Float?
+
+  // Structured variant selection — stored at checkout so inventory can be
+  // decremented automatically when payment is confirmed.  Quantity mirrors
+  // the cart qty (defaults to 1 for single-item orders).
+  adminProductId  String?  // FK → AdminProduct.id (null for legacy/custom orders)
+  selectedSize    String?  // e.g. "M"
+  selectedColor   String?  // e.g. "Red"
+  quantity        Int      @default(1)
+  // Idempotency flag: set to true once stock has been deducted so webhook
+  // retries never double-decrement.
+  stockDeducted   Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id])
+  product     Product      @relation(fields: [productId], references: [id])
+  measurement Measurement? @relation(fields: [measurementId], references: [id])
+  payment     Payment?     @relation(fields: [paymentId], references: [id])
+  messages    OrderMessage[]
+}
+
+// ─── Order Messaging ─────────────────────────────────────────────
+// Thread of messages sent by admin to customer (outbound) or logged
+// replies from the customer (inbound). Stored separately from the
+// email system so admins can see the full conversation in-app.
+model OrderMessage {
+  id        String   @id @default(cuid())
+  orderId   String
+  // "outbound" = admin sent via in-app compose; "inbound" = customer reply logged by admin
+  direction String   @default("outbound")
+  content   String
+  sentBy    String?  // admin name who sent/logged it
+  createdAt DateTime @default(now())
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model Payment {
+  id                    String   @id @default(cuid())
+  orderId               String?
+  userId                String
+  amount                Float
+  currency              String   @default("USD")
+  status                String   @default("pending")
+  stripePaymentIntentId String?  @unique
+  stripeClientSecret    String?
+  paypalOrderId         String?  @unique
+  paypalPayerId         String?
+  paymentMethod         String?
+  last4                 String?
+  brand                 String?
+  description           String?
+  receipt_url           String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  orders Order[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([stripePaymentIntentId])
+  @@index([paypalOrderId])
+}
+
+model Consultation {
+  id                String   @id @default(cuid())
+  userId            String
+  date              DateTime
+  status            String   @default("scheduled")
+  notes             String?
+  eventType         String?
+  eventDate         String?
+  budget            String?
+  stylePreferences  String?
+  bodyType          String?
+  colors            String?
+  inspiration       String?
+  specialNotes      String?
+  analysisStatus    String   @default("pending")
+  aiRecommendations String?
+  styleSummary      String?
+  fabricSuggestions String?
+  designNotes       String?
+  meetingLink       String?
+  createdAt         DateTime @default(now())
+
+  user    User                 @relation(fields: [userId], references: [id])
+  booking ConsultationBooking?
+}
+
+// ─── Consultation Slots (admin-managed availability) ──────────────
+
+model ConsultationSlot {
+  id          String   @id @default(cuid())
+  date        DateTime // date of the slot
+  startTime   String // e.g. "10:00"
+  endTime     String // e.g. "10:30"
+  duration    Int      @default(30) // minutes
+  type        String   @default("virtual") // virtual, in_person, phone
+  isAvailable Boolean  @default(true)
+  maxBookings Int      @default(1)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  bookings ConsultationBooking[]
+
+  @@index([date])
+  @@index([isAvailable])
+}
+
+model ConsultationBooking {
+  id             String    @id @default(cuid())
+  slotId         String
+  consultationId String?   @unique
+  userId         String
+  customerName   String?
+  customerEmail  String?
+  customerPhone  String?
+  meetingLink    String?
+  status         String    @default("confirmed") // confirmed, cancelled, completed, no_show
+  reminderSentAt String? // JSON array of ISO timestamps when reminders were sent
+  notifiedAt     DateTime?
+  callTranscript String? // AI transcript captured during the video consultation
+  transcriptStatus String? // null | 'processing' | 'done' | 'failed' — recording→transcript pipeline state
+  callSummary    String? // AI-generated structured summary of the consultation
+  callNotes      String? // Notes (and any translation) saved after the call
+  callRecordingUrl String? // JaaS cloud-recording download link (set by the JaaS webhook)
+  callRecordingAt  DateTime? // When the recording was uploaded/attached
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  slot         ConsultationSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  consultation Consultation?    @relation(fields: [consultationId], references: [id])
+
+  @@index([slotId])
+  @@index([userId])
+  @@index([status])
+}
+
+model Measurement {
+  id            String   @id @default(cuid())
+  userId        String
+  bust          Float?
+  waist         Float?
+  hip           Float?
+  shoulder      Float?
+  length        Float?
+  inseam        Float?
+  sleeveLength  Float?
+  neckline      Float?
+  fitPreference String?
+  notes         String?
+  accuracy      Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  orders Order[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  relatedId String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model Conversation {
+  id           String    @id @default(cuid())
+  title        String
+  relatedType  String?
+  relatedId    String?
+  participants User[]    @relation("conversationParticipants")
+  messages     Message[]
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([relatedType])
+  @@index([isActive])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  userId         String
+  content        String
+  attachmentUrl  String?
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([userId])
+  @@index([isRead])
+}
+
+model Designer {
+  id        String   @id @default(cuid())
+  name      String
+  specialty String
+  status    String   @default("available")
+  createdAt DateTime @default(now())
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ADMIN / BUSINESS MANAGEMENT MODELS
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── Clients ──────────────────────────────────────────────────────
+
+model Client {
+  id        String   @id @default(cuid())
+  clientId  String   @unique // C-001, C-002
+  name      String
+  phone     String?
+  instagram String?
+  email     String?
+  city      String?
+  notes     String?
+  gender    String? // male, female, non-binary, prefer not to say
+  vipTier   String   @default("standard") // standard, vip, vvip
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders             AdminOrder[]
+  measurements       ClientMeasurement[]
+  customOrders       CustomOrder[]
+  rentalOrders       RentalOrder[]
+  adminConsultations AdminConsultation[]
+  quotes             Quote[]
+}
+
+// ─── Client Measurements ──────────────────────────────────────────
+
+model ClientMeasurement {
+  id            String   @id @default(cuid())
+  clientId      String
+  profileName   String   @default("Default") // "Default", "Evening Wear", "Casual"
+  bust          Float?
+  waist         Float?
+  hip           Float?
+  shoulder      Float?
+  sleeve        Float?
+  length        Float?
+  inseam        Float?
+  neckline      Float?
+  armhole       Float?
+  backWidth     Float?
+  frontLength   Float?
+  skirtLength   Float?
+  trouserLength Float?
+  fitPreference String? // slim, regular, relaxed
+  notes         String?
+  accuracy      Int      @default(0) // 0-100
+  isActive      Boolean  @default(true)
+  measuredBy    String? // staff who took measurement
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  customOrders CustomOrder[]
+}
+
+// ─── Admin Orders (Ready-to-Wear + General) ───────────────────────
+
+model AdminOrder {
+  id                String   @id @default(cuid())
+  orderId           String   @unique // AWK-001
+  clientId          String
+  item              String
+  fabric            String?
+  totalPrice        Float?
+  deposit           Float    @default(0)
+  totalPaid         Float    @default(0)
+  balance           Float?
+  status            String   @default("Inquiry")
+  orderType         String   @default("ready-to-wear") // ready-to-wear, custom, rental, alteration
+  dueDate           String?
+  notes             String?
+  paymentStatus     String?
+  productionAllowed String   @default("HOLD")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  client     Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  production ProductionTracker?
+  payments   PaymentRecord[]
+}
+
+// ─── Custom Orders (Full Pipeline) ────────────────────────────────
+
+model CustomOrder {
+  id            String  @id @default(cuid())
+  orderId       String  @unique // CUS-001
+  clientId      String
+  measurementId String?
+  designerId    String?
+  quoteId       String?
+
+  // Event & Design Details
+  eventType         String? // wedding, prom, bridal, birthday, corporate, other
+  eventDate         String?
+  deadline          String?
+  designDescription String?
+  inspirationNotes  String?
+  inspirationImages String? // JSON array of image URLs
+  colorPreferences  String?
+  fabricPreferences String?
+
+  // Pricing
+  estimatedPrice Float?
+  finalPrice     Float?
+  depositAmount  Float  @default(0)
+  totalPaid      Float  @default(0)
+  balance        Float?
+
+  // Assignment
+  assignmentAttempts Int @default(0)
+
+  // Pipeline Status
+  status String @default("inquiry_received")
+  // pending_assignment, offered, assigned,
+  // inquiry_received, consultation_scheduled, consultation_completed,
+  // measurements_received, quote_sent, deposit_paid, fabric_assigned,
+  // in_production, fitting_scheduled, alteration_in_progress,
+  // final_payment_pending, ready_for_delivery, delivered, cancelled
+
+  // Production
+  assignedFabric  String?
+  productionNotes String?
+  priority        String  @default("NORMAL") // LOW, NORMAL, HIGH, RUSH
+  rushFee         Float   @default(0)
+
+  // Metadata
+  source    String? // website, instagram, referral, walk-in
+  tags      String? // JSON array of tags
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client           Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  measurement      ClientMeasurement?   @relation(fields: [measurementId], references: [id])
+  designer         PartnerDesigner?     @relation(fields: [designerId], references: [id])
+  quote            Quote?               @relation(fields: [quoteId], references: [id])
+  fittings         Fitting[]
+  attachments      OrderAttachment[]
+  activityLog      OrderActivity[]
+  payments         CustomOrderPayment[]
+  assignmentOffers AssignmentOffer[]
+
+  @@index([status])
+  @@index([clientId])
+  @@index([designerId])
+}
+
+model OrderAttachment {
+  id            String   @id @default(cuid())
+  customOrderId String
+  fileName      String
+  fileUrl       String
+  fileType      String? // image, document, sketch
+  category      String? // inspiration, fabric_swatch, design_sketch, photo
+  notes         String?
+  uploadedBy    String?
+  createdAt     DateTime @default(now())
+
+  customOrder CustomOrder @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+}
+
+model OrderActivity {
+  id            String   @id @default(cuid())
+  customOrderId String
+  action        String // status_change, note_added, payment_received, designer_assigned, fitting_scheduled
+  description   String
+  previousValue String?
+  newValue      String?
+  performedBy   String?
+  createdAt     DateTime @default(now())
+
+  customOrder CustomOrder @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+
+  @@index([customOrderId])
+}
+
+model CustomOrderPayment {
+  id            String   @id @default(cuid())
+  paymentId     String   @unique // CP-001
+  customOrderId String
+  amount        Float
+  method        String? // Cash, Zelle, CashApp, Apple Pay, Bank Transfer, Stripe
+  paymentType   String? // Deposit, Progress, Balance, Rush Fee, Fitting Fee
+  date          DateTime @default(now())
+  notes         String?
+  recordedBy    String?
+  createdAt     DateTime @default(now())
+
+  customOrder CustomOrder @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+}
+
+// ─── Fittings ─────────────────────────────────────────────────────
+
+model Fitting {
+  id                String    @id @default(cuid())
+  customOrderId     String?
+  clientId          String?
+  type              String    @default("standard") // initial, standard, final, alteration
+  scheduledDate     DateTime
+  scheduledTime     String?
+  duration          Int       @default(30) // minutes
+  status            String    @default("scheduled") // scheduled, completed, cancelled, no_show, rescheduled
+  location          String? // atelier, client home, virtual
+  fitter            String? // staff member
+  notes             String?
+  alterationsNeeded String?
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  customOrder CustomOrder? @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+
+  @@index([scheduledDate])
+  @@index([status])
+}
+
+// ─── Rental Services ──────────────────────────────────────────────
+
+model RentalOrder {
+  id           String @id @default(cuid())
+  rentalId     String @unique // RNT-001
+  clientId     String
+  rentalItemId String
+
+  // Rental Period
+  startDate  DateTime
+  endDate    DateTime
+  returnDate DateTime?
+
+  // Pricing
+  rentalPrice Float
+  deposit     Float @default(0)
+  totalPaid   Float @default(0)
+  lateFee     Float @default(0)
+  damageFee   Float @default(0)
+
+  // Status
+  status String @default("reserved")
+  // reserved, confirmed, picked_up, in_use, returned, inspected, closed, overdue
+
+  // Condition
+  conditionOut   String? // condition when rented out
+  conditionIn    String? // condition on return
+  cleaningNeeded Boolean @default(false)
+  damageNotes    String?
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client     Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  rentalItem RentalItem @relation(fields: [rentalItemId], references: [id])
+
+  @@index([status])
+  @@index([startDate])
+}
+
+model RentalItem {
+  id                String    @id @default(cuid())
+  itemId            String    @unique // RI-001
+  name              String
+  description       String?
+  category          String? // gown, suit, dress, accessories
+  size              String?
+  color             String?
+  images            String? // JSON array
+  rentalPrice       Float
+  replacementCost   Float?
+  condition         String    @default("excellent") // excellent, good, fair, needs_repair, retired
+  maintenanceStatus String    @default("clean") // clean, needs_cleaning, in_cleaning, needs_repair, in_repair
+  isAvailable       Boolean   @default(true)
+  timesRented       Int       @default(0)
+  lastCleaned       DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  rentalOrders RentalOrder[]
+}
+
+// ─── Partner Designers ────────────────────────────────────────────
+
+model PartnerDesigner {
+  id              String   @id @default(cuid())
+  designerId      String   @unique // DES-001
+  userId          String?  @unique // links to User so designer can log in & receive notifications
+  name            String
+  businessName    String?
+  email           String?
+  phone           String?
+  location        String?
+  specialty       String? // bridal, evening, menswear, accessories, etc.
+  bio             String?
+  portfolioUrl    String?
+  profileImage    String?
+  status          String   @default("active") // active, inactive, on_leave, probation
+  maxCapacity     Int      @default(5)
+  currentLoad     Int      @default(0)
+  rating          Float    @default(5.0) // 1-5
+  completedOrders Int      @default(0)
+  avgDeliveryDays Int?
+  priceRange      String? // budget, mid, premium, luxury
+  tags            String? // JSON array
+  acceptanceRate  Float    @default(1.0) // 0-1 fraction
+  onTimeRate      Float    @default(1.0) // 0-1 fraction
+  totalOffered    Int      @default(0)
+  totalAccepted   Int      @default(0)
+  lastAssignedAt  DateTime?
+  joinedAt        DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user             User?             @relation(fields: [userId], references: [id])
+  customOrders     CustomOrder[]
+  assignmentOffers AssignmentOffer[]
+
+  @@index([status])
+  @@index([specialty])
+}
+
+// ─── Designer Applications (public intake → admin review/approval) ──
+// Becoming a designer is a separate, approval-gated process: an applicant
+// submits this form, an admin works the verification checklist, and only
+// on approval is a PartnerDesigner record created so they can sign up.
+model DesignerApplication {
+  id              String  @id @default(cuid())
+  name            String
+  email           String
+  phone           String?
+  location        String?
+  businessName    String?
+  specialty       String? // bridal, evening, menswear, accessories, etc.
+  portfolioUrl    String?
+  yearsExperience Int?
+  bio             String?
+
+  status String @default("pending") // pending, under_review, approved, rejected
+
+  // Verification checklist — admin ticks these off before approving.
+  identityVerified      Boolean @default(false)
+  portfolioReviewed     Boolean @default(false)
+  referencesChecked     Boolean @default(false)
+  backgroundCheckPassed Boolean @default(false)
+
+  reviewNotes       String?
+  reviewedBy        String? // admin email
+  reviewedAt        DateTime?
+  partnerDesignerId String? // set once approved → the created PartnerDesigner
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([email])
+}
+
+// ─── Consultations (Admin-side) ───────────────────────────────────
+
+model AdminConsultation {
+  id            String   @id @default(cuid())
+  consultId     String   @unique // CON-001
+  clientId      String?
+  clientName    String? // for walk-ins without client record
+  type          String   @default("virtual") // virtual, in_person, phone
+  purpose       String? // custom_design, styling, bridal, fitting, follow_up
+  scheduledDate DateTime
+  scheduledTime String?
+  duration      Int      @default(30) // minutes
+  status        String   @default("scheduled") // scheduled, confirmed, in_progress, completed, cancelled, no_show
+  assignedTo    String? // staff member
+
+  // Notes & Outcome
+  preNotes     String? // notes before consultation
+  sessionNotes String? // notes during/after
+  outcome      String? // booked_order, follow_up_needed, no_action, cancelled
+  followUpDate String?
+
+  // AI Analysis
+  aiSummary String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client? @relation(fields: [clientId], references: [id])
+
+  @@index([scheduledDate])
+  @@index([status])
+}
+
+// ─── Quotes & Pricing ─────────────────────────────────────────────
+
+model Quote {
+  id       String @id @default(cuid())
+  quoteId  String @unique // QUO-001
+  clientId String
+
+  // Line Items (JSON array of { description, quantity, unitPrice, total })
+  lineItems String // JSON
+
+  // Costs
+  materialsTotal Float   @default(0)
+  laborTotal     Float   @default(0)
+  fittingFee     Float   @default(0)
+  rushFee        Float   @default(0)
+  deliveryFee    Float   @default(0)
+  discount       Float   @default(0)
+  discountType   String? // percentage, fixed
+  subtotal       Float   @default(0)
+  tax            Float   @default(0)
+  total          Float   @default(0)
+
+  // Status
+  status     String  @default("draft") // draft, sent, viewed, accepted, rejected, expired, converted
+  validUntil String?
+
+  notes              String?
+  terms              String?
+  convertedToOrderId String?
+
+  // Client-facing share & payment
+  accessToken            String?   @unique
+  sentAt                 DateTime?
+  viewedAt               DateTime?
+  acceptedAt             DateTime?
+  rejectedAt             DateTime?
+  depositPercent         Int       @default(50)
+  depositAmount          Float     @default(0)
+  depositPaidAt          DateTime?
+  stripePaymentIntentId  String?
+  stripeCheckoutSessionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client       Client        @relation(fields: [clientId], references: [id])
+  customOrders CustomOrder[]
+
+  @@index([status])
+  @@index([clientId])
+}
+
+// ─── Admin Products (Catalog Management) ──────────────────────────
+
+model AdminProduct {
+  id              String  @id @default(cuid())
+  sku             String  @unique // AWK-P001
+  name            String
+  description     String?
+  longDescription String?
+  category        String // ready-to-wear, jewelry, accessories, fabric
+  subcategory     String? // dress, gown, blouse, ring, necklace, etc.
+  gender          String? // men, women, unisex
+  price           Float
+  compareAtPrice  Float? // for showing "was $X"
+  costPrice       Float?
+  images          String? // JSON array of image URLs
+
+  // Variants
+  sizes     String? // JSON array of available sizes
+  colors    String? // JSON array of available colors
+  materials String? // JSON array of materials used
+
+  // Stock
+  trackInventory Boolean @default(true)
+  totalStock     Int     @default(0)
+  // Legacy per-color breakdown — still readable for old records.
+  colorStock     String?
+  // Legacy per-size breakdown — still readable for old records.
+  sizeStock      String?
+  // Per color-×-size matrix (source of truth when present).
+  // JSON: {"Yellow": {"M": 5, "L": 10}, "Red": {"L": 2, "XXXL": 3}}
+  // totalStock mirrors the sum of all cells.
+  variantStock   String?
+
+  // Shipping weight in pounds (used to buy the right postage). Null → falls
+  // back to a default parcel weight at label time.
+  weightLb Float?
+
+  // Publishing
+  isPublished  Boolean @default(false)
+  isFeatured   Boolean @default(false)
+  isNewArrival Boolean @default(false)
+
+  // Size / measurement chart
+  sizeChartImage String? // Cloudinary URL of the uploaded measurement chart
+  sizeChartData  String? // JSON: AI-converted table holding both cm + inch values
+
+  // Personalisation — when on, shoppers can add custom instructions (e.g. name
+  // + number on a jersey) for a flat extra fee (see CUSTOMIZATION_FEE).
+  allowCustomization Boolean @default(false)
+
+  // SEO / Display
+  slug String? @unique
+  tags String? // JSON array
+
+  // Associations
+  collectionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  collection          AdminCollection?    @relation(fields: [collectionId], references: [id])
+  variants            ProductVariant[]
+  featuredPlacements  FeaturedPlacement[]
+  reviews             ProductReview[]
+  wishlistItems       Wishlist[]
+  backInStockRequests BackInStockRequest[]
+
+  @@index([category])
+  @@index([isPublished])
+  @@index([isFeatured])
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  productId   String
+  sku         String   @unique // AWK-P001-S-BLK
+  size        String?
+  color       String?
+  material    String?
+  price       Float? // override product price
+  stock       Int      @default(0)
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product AdminProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+// ─── Collections & Merchandising ──────────────────────────────────
+
+model AdminCollection {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String?  @unique
+  description String?
+  image       String?
+  season      String? // SS2026, FW2026
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products AdminProduct[]
+}
+
+model FeaturedPlacement {
+  id        String    @id @default(cuid())
+  productId String
+  section   String // homepage_hero, homepage_grid, new_arrivals, trending, editor_pick
+  position  Int       @default(0) // sort order
+  title     String? // optional override
+  subtitle  String?
+  ctaText   String?
+  startDate DateTime?
+  endDate   DateTime?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  product AdminProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([section])
+  @@index([isActive])
+}
+
+// ─── Storefront Control ───────────────────────────────────────────
+
+model StorefrontBanner {
+  id        String    @id @default(cuid())
+  title     String
+  subtitle  String?
+  imageUrl  String? // primary image (kept = images[0] for back-compat)
+  images    String? // JSON array of image URLs; supports multiple per banner
+  linkUrl   String?
+  position  String // hero, announcement, promo_strip
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  startDate DateTime?
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([position])
+  @@index([isActive])
+}
+
+// ─── Editable Site Content (CMS-lite) ─────────────────────────────
+// Generic key/value store for editable homepage/marketing sections.
+// `value` holds a JSON blob whose shape depends on `key`.
+// Examples:
+//   key="about_designer" → { eyebrow, title, paragraphs: string[], imageUrl, ctaPrimaryLabel, ctaPrimaryHref, ctaSecondaryLabel, ctaSecondaryHref }
+model SiteContent {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+// ─── App Settings (typed key/value, grouped by category) ──────────
+// One row per logical settings section (general, business, scheduling,
+// notifications, integrations, branding, seo, ...). `value` is a JSON
+// blob validated by Zod at the API layer.
+model AppSetting {
+  key       String   @id
+  category  String
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@index([category])
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────
+// Append-only record of admin mutations. `entity` is the resource type
+// (e.g. "AppSetting", "AdminProduct"), `entityId` is the primary key
+// of the affected row, `action` is one of create|update|delete|other.
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actorEmail String?
+  action     String
+  entity     String
+  entityId   String?
+  summary    String?
+  diff       Json?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+// ─── Pages CMS ────────────────────────────────────────────────────
+// Editable storefront pages built from JSON `blocks`. Slug "/" is the
+// home page; "/about", "/faq", etc. for static pages. `blocks` is an
+// ordered array of block objects (see web/src/lib/page-blocks.ts).
+model Page {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  title       String
+  description String?
+  blocks      Json
+  status      String         @default("draft") // draft | published
+  publishedAt DateTime?
+  metaTitle   String?
+  metaDesc    String?
+  ogImage     String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  updatedBy   String?
+  revisions   PageRevision[]
+
+  @@index([status])
+}
+
+model PageRevision {
+  id        String   @id @default(cuid())
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  title     String
+  blocks    Json
+  note      String?
+  createdAt DateTime @default(now())
+  createdBy String?
+
+  @@index([pageId, createdAt])
+}
+
+// ─── Email Templates ──────────────────────────────────────────────
+// Admin-editable transactional email templates. `key` matches the
+// constants in web/src/lib/email-templates.ts (e.g. "password_reset",
+// "order_confirmation"). Templates support {{variable}} substitution.
+model EmailTemplate {
+  key         String   @id
+  name        String
+  subject     String
+  html        String   @db.Text
+  variables   Json     // string[] — list of supported variable names
+  enabled     Boolean  @default(true)
+  description String?
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
+}
+
+// ─── Admin Invites ────────────────────────────────────────────────
+// Pending invitations to join the staff/admin team. Once accepted,
+// the invitee's User.role is updated and acceptedAt is set.
+model AdminInvite {
+  id         String    @id @default(cuid())
+  email      String
+  role       String
+  token      String    @unique
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  invitedBy  String?
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
+  @@index([token])
+}
+
+// ─── Discounts / Coupons ──────────────────────────────────────────
+model Discount {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  type             String    // "percent" | "fixed" | "free_shipping"
+  value            Float     @default(0)
+  minSubtotal      Float?
+  startsAt         DateTime?
+  endsAt           DateTime?
+  usageLimit       Int?
+  perCustomerLimit Int?
+  usageCount       Int       @default(0)
+  enabled          Boolean   @default(true)
+  appliesTo        Json?
+  description      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  updatedBy        String?
+
+  redemptions      DiscountRedemption[]
+
+  @@index([enabled])
+}
+
+model DiscountRedemption {
+  id            String   @id @default(cuid())
+  discountId    String
+  customerEmail String?
+  orderId       String?
+  amountOff     Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  discount      Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+
+  @@index([discountId])
+  @@index([customerEmail])
+}
+
+// ─── Existing Admin Models (preserved) ────────────────────────────
+
+model ProductionTracker {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  priority  String   @default("LOW")
+  stage     String   @default("Order Received")
+  progress  Int      @default(0)
+  dueDate   String?
+  updatedAt DateTime @updatedAt
+
+  order AdminOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model PaymentRecord {
+  id          String    @id @default(cuid())
+  paymentId   String    @unique // P-001
+  orderId     String
+  client      String
+  amount      Float?
+  method      String?
+  date        DateTime?
+  paymentType String?
+  notes       String?
+  createdAt   DateTime  @default(now())
+
+  order AdminOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model FabricInventory {
+  id           String   @id @default(cuid())
+  fabricType   String
+  color        String?
+  quantity     Float    @default(0)
+  unit         String   @default("yards")
+  supplier     String?
+  cost         Float?
+  usedForOrder String?
+  minStock     Float    @default(0) // low stock alert threshold
+  location     String? // storage location
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// ─── Shipping & Fulfillment ───────────────────────────────────────
+
+model Shipment {
+  id            String  @id @default(cuid())
+  shipmentId    String  @unique // SHP-001
+  // Link to any order type
+  adminOrderId      String?
+  customOrderId     String?
+  rentalOrderId     String?
+  storefrontOrderId String?
+
+  // Recipient
+  recipientName  String
+  recipientPhone String?
+  recipientEmail String?
+  addressLine1   String
+  addressLine2   String?
+  city           String
+  state          String
+  postalCode     String
+  country        String  @default("US")
+
+  // Carrier & Tracking
+  carrier        String  @default("UPS") // UPS, FedEx, USPS, DHL
+  serviceType    String? // ups_ground, ups_next_day_air, ups_2nd_day_air, etc.
+  trackingNumber String?
+  labelUrl       String? // URL to generated label PDF
+  labelData      String? // Base64 label data for printing
+
+  // Package details
+  packageWeight Float? // in lbs
+  packageLength Float? // inches
+  packageWidth  Float? // inches
+  packageHeight Float? // inches
+  declaredValue Float?
+
+  // Costs
+  shippingCost  Float?
+  insuranceCost Float?
+
+  // Status
+  status            String    @default("pending")
+  // pending, label_created, picked_up, in_transit, out_for_delivery, delivered, returned, exception
+  estimatedDelivery DateTime?
+  actualDelivery    DateTime?
+  shippedAt         DateTime?
+
+  // USPS carrier pickup (set when the cron schedules a pickup that bundles
+  // this label). Lets us avoid double-scheduling and shows up in admin.
+  pickupConfirmation String?
+  pickupScheduledFor DateTime?
+
+  // Metadata
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  events         ShipmentEvent[]
+  returnRequests ReturnRequest[]
+
+  @@index([status])
+  @@index([trackingNumber])
+  @@index([adminOrderId])
+  @@index([customOrderId])
+  @@index([storefrontOrderId])
+}
+
+// ─── Shipment Events (tracking history) ───────────────────────────
+
+model ShipmentEvent {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  status      String // pending, label_created, picked_up, in_transit, out_for_delivery, delivered, returned, exception
+  description String?
+  location    String?
+  occurredAt  DateTime @default(now())
+  source      String   @default("system") // system, ups_webhook, manual
+  createdAt   DateTime @default(now())
+
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+}
+
+// ─── Returns / RMA ────────────────────────────────────────────────
+
+model ReturnRequest {
+  id            String  @id @default(cuid())
+  returnId      String  @unique // RMA-001
+  shipmentId    String?
+  adminOrderId  String?
+  customOrderId String?
+  rentalOrderId String?
+
+  // Customer info
+  customerName  String
+  customerEmail String?
+  customerPhone String?
+
+  // Return details
+  reason      String // damaged, wrong_item, sizing, changed_mind, defective, other
+  description String?
+  status      String  @default("requested")
+  // requested, approved, label_sent, item_received, inspecting, refunded, denied, completed
+  resolution  String? // refund, exchange, store_credit
+
+  // Return shipping
+  returnTrackingNumber String?
+  returnLabelData      String?
+  returnCarrier        String?
+  returnShippingCost   Float?
+
+  // Inspection
+  inspectionNotes String?
+  condition       String? // new, like_new, used, damaged
+
+  // Refund
+  refundAmount Float?
+  refundedAt   DateTime?
+
+  // Timestamps
+  approvedAt DateTime?
+  receivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  shipment Shipment? @relation(fields: [shipmentId], references: [id])
+
+  @@index([status])
+  @@index([shipmentId])
+  @@index([adminOrderId])
+}
+
+// ─── Assignment Offers (Uber-like designer dispatch) ──────────────
+
+model AssignmentOffer {
+  id            String    @id @default(cuid())
+  offerId       String    @unique // OFR-001
+  customOrderId String
+  designerId    String
+  status        String    @default("offered") // offered, accepted, declined, expired
+  offeredAt     DateTime  @default(now())
+  expiresAt     DateTime
+  respondedAt   DateTime?
+  declineReason String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  customOrder CustomOrder     @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+  designer    PartnerDesigner @relation(fields: [designerId], references: [id])
+
+  @@index([customOrderId])
+  @@index([designerId])
+  @@index([status])
+}
+
+// ─── Product Reviews ───────────────────────────────────────────────
+
+model ProductReview {
+  id        String   @id @default(cuid())
+  productId String
+  userId    String?  // null = guest / unverified
+  authorName  String
+  authorEmail String?
+  rating    Int      // 1–5
+  title     String?
+  body      String?
+  status    String   @default("pending") // pending, approved, rejected
+  verifiedPurchase Boolean @default(false)
+  helpfulCount Int   @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product AdminProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([status])
+  @@index([userId])
+}
+
+// ─── Wishlist ───────────────────────────────────────────────────────
+
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  addedAt   DateTime @default(now())
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product AdminProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+// ─── Mailing list & marketing ───────────────────────────────────────
+
+// Email opt-ins that don't (necessarily) have a customer account — e.g.
+// someone who typed their email into the footer "Get updates" box. The
+// audience for a campaign = these (status='subscribed') UNION all Users
+// who haven't opted out, deduped by email.
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  name           String?
+  source         String    @default("footer") // footer, signup, checkout, manual, back_in_stock
+  status         String    @default("subscribed") // subscribed, unsubscribed
+  unsubToken     String    @unique @default(cuid())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  unsubscribedAt DateTime?
+
+  @@index([status])
+}
+
+// "Notify me when this is back in stock" requests. One per email+product;
+// notifiedAt is stamped once we email them so we never double-notify.
+model BackInStockRequest {
+  id         String    @id @default(cuid())
+  email      String
+  name       String?
+  productId  String
+  notifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  product AdminProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([email, productId])
+  @@index([productId])
+  @@index([notifiedAt])
+}
+
+// A marketing send (manual broadcast or automated new-product blast).
+// Stores what was sent for history, dedupe, and the admin list view.
+model MarketingCampaign {
+  id             String    @id @default(cuid())
+  type           String    @default("manual") // manual, new_product
+  subject        String
+  bodyHtml       String    @db.Text
+  audience       String    @default("all") // all, customers, subscribers
+  status         String    @default("draft") // draft, sending, sent, failed
+  productId      String? // set for new_product announcements (dedupe key)
+  recipientCount Int       @default(0)
+  sentCount      Int       @default(0)
+  failedCount    Int       @default(0)
+  createdBy      String?
+  createdAt      DateTime  @default(now())
+  sentAt         DateTime?
+
+  @@index([type])
+  @@index([status])
+  @@index([productId])
+}

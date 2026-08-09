@@ -1,0 +1,26 @@
+name: cron-sync-tracking
+
+# Polling fallback that advances shipping status for EasyPost-bought labels.
+# The EasyPost tracker webhook (POST /api/shipping/webhook/easypost) is the
+# primary path, but if it misses an event this cron polls every active
+# shipment's tracker and feeds any change through the same updateShipmentStatus
+# helper — so the linked order flips to in-transit/delivered and the customer is
+# notified.
+#
+# Optional repo secret CRON_SECRET; if the app's CRON_SECRET env var is unset
+# the endpoint runs without auth (matching the other cron-* workflows).
+
+on:
+  schedule:
+    - cron: '0 */4 * * *' # every 4 hours
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/sync-tracking
+        run: |
+          curl -fsS -X POST "https://www.awulak.com/api/cron/sync-tracking" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP %{http_code}\n"

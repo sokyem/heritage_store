@@ -1,0 +1,24 @@
+name: cron-expire-consultation-slots
+
+# Deletes past consultation availability slots (date before today) that were
+# never booked, so the admin slot list stays clean. Booked past slots are kept
+# (their bookings hold the call transcript/notes/recording). No customer-facing
+# effect.
+#
+# Optional repo secret CRON_SECRET; if the app's CRON_SECRET env var is unset
+# the endpoint runs without auth (matching the other cron-* workflows).
+
+on:
+  schedule:
+    - cron: '15 4 * * *' # daily at 04:15 UTC
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/expire-consultation-slots
+        run: |
+          curl -fsS -X POST "https://www.awulak.com/api/cron/expire-consultation-slots" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP %{http_code}\n"

@@ -1,0 +1,940 @@
+/* ==========================================
+   MATCHDAY BY AWULA K - BRANDING STYLES
+   ========================================== */
+
+:root {
+  --matchday-primary: #000000;
+  --matchday-accent: #CE1126;
+  --matchday-accent-light: #FF3333;
+  --matchday-secondary: #007A5E;
+  --matchday-gold: #FCD116;
+  --matchday-text: #ffffff;
+  --matchday-text-dark: #000000;
+  --matchday-bg: #ffffff;
+  --matchday-border: #e0e0e0;
+  --matchday-light-gray: #f9f9f9;
+}
+
+.matchday-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  color: var(--matchday-text-dark);
+  background: var(--matchday-bg);
+}
+
+/* ========== HERO SECTION ========== */
+.matchday-hero {
+  position: relative;
+  height: 100vh;
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.matchday-hero-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--matchday-primary);
+}
+
+.matchday-hero-image {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out;
+}
+
+.matchday-hero-image.active {
+  opacity: 1;
+}
+
+.matchday-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 46, 0.8) 0%,
+    rgba(233, 69, 96, 0.6) 100%
+  );
+  z-index: 10;
+}
+
+.matchday-hero-content {
+  position: relative;
+  z-index: 20;
+  text-align: center;
+  color: var(--matchday-text);
+  max-width: 800px;
+  padding: 2rem;
+}
+
+.matchday-hero-title {
+  font-size: clamp(3rem, 10vw, 5rem);
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.matchday-hero-subtitle {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 300;
+  letter-spacing: 2px;
+  margin-top: 0.5rem;
+  color: var(--matchday-accent);
+}
+
+.matchday-hero-subtitle-2 {
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 1px;
+  margin-top: 1rem;
+  color: var(--matchday-gold);
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.matchday-hero-tagline {
+  font-size: 1.25rem;
+  margin: 1.5rem 0;
+  font-weight: 300;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.matchday-hero-cta {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+.matchday-btn {
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  text-decoration: none;
+  display: inline-block;
+  border-radius: 4px;
+}
+
+.matchday-btn-primary {
+  background: var(--matchday-accent);
+  color: var(--matchday-text);
+  box-shadow: 0 4px 15px rgba(233, 69, 96, 0.3);
+}
+
+.matchday-btn-primary:hover {
+  background: var(--matchday-accent-light);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
+}
+
+.matchday-btn-secondary {
+  background: transparent;
+  color: var(--matchday-text);
+  border: 2px solid var(--matchday-text);
+}
+
+.matchday-btn-secondary:hover {
+  background: var(--matchday-text);
+  color: var(--matchday-primary);
+  transform: translateY(-2px);
+}
+
+.matchday-btn-lg {
+  padding: 16px 48px;
+  font-size: 1.1rem;
+}
+
+.matchday-hero-dots {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.75rem;
+  z-index: 20;
+}
+
+.matchday-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--matchday-text);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.matchday-dot.active {
+  background: var(--matchday-accent);
+  border-color: var(--matchday-accent);
+  transform: scale(1.2);
+}
+
+/* ========== SECTION HEADERS ========== */
+.matchday-section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.matchday-section-header h2 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 1px;
+  color: var(--matchday-primary);
+}
+
+.matchday-section-header p {
+  font-size: 1.1rem;
+  color: #666;
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+
+/* ========== FEATURED JERSEYS SECTION ========== */
+.matchday-featured {
+  padding: 4rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.matchday-featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 2rem;
+}
+
+.matchday-featured-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.matchday-featured-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(233, 69, 96, 0.15);
+}
+
+.matchday-featured-image-wrapper {
+  position: relative;
+  height: 350px;
+  overflow: hidden;
+  background: var(--matchday-primary);
+}
+
+.matchday-featured-image {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s ease;
+}
+
+.matchday-featured-card:hover .matchday-featured-image {
+  transform: scale(1.05);
+}
+
+.matchday-featured-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--matchday-accent);
+  color: white;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border-radius: 20px;
+}
+
+.matchday-featured-info {
+  padding: 1.5rem;
+}
+
+.matchday-featured-info h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--matchday-primary);
+}
+
+.matchday-featured-price {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--matchday-accent);
+  margin: 0.5rem 0 1rem 0;
+  letter-spacing: 0.5px;
+}
+
+.matchday-featured-link {
+  display: inline-block;
+  color: var(--matchday-accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+}
+
+.matchday-featured-link:hover {
+  color: var(--matchday-accent-light);
+  transform: translateX(4px);
+}
+
+/* ========== WHY MATCHDAY SECTION ========== */
+.matchday-why {
+  background: white;
+  color: var(--matchday-text-dark);
+  padding: 4rem 2rem;
+}
+
+.matchday-why .matchday-section-header {
+  color: var(--matchday-text-dark);
+}
+
+.matchday-why .matchday-section-header h2 {
+  color: var(--matchday-primary);
+  font-size: 2.5rem;
+}
+
+.matchday-why .matchday-section-header p {
+  color: #666;
+}
+
+.matchday-benefits {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.matchday-benefit-card {
+  background: var(--matchday-light-gray);
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: 8px;
+  text-align: center;
+  border: 2px solid var(--matchday-accent);
+  transition: all 0.3s ease;
+}
+
+.matchday-benefit-card:hover {
+  background: white;
+  border-color: var(--matchday-gold);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(206, 17, 38, 0.15);
+}
+
+.matchday-benefit-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.matchday-benefit-card h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--matchday-accent);
+  letter-spacing: 0.5px;
+}
+
+.matchday-benefit-card p {
+  color: #444;
+  font-weight: 400;
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* ========== CTA SECTION ========== */
+.matchday-cta-section {
+  background: linear-gradient(135deg, var(--matchday-primary) 0%, var(--matchday-accent) 100%);
+  color: var(--matchday-text);
+  padding: 4rem 2rem;
+  text-align: center;
+  border-top: 4px solid var(--matchday-gold);
+}
+
+.matchday-cta-section h2 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin: 0 0 1rem 0;
+  letter-spacing: 1px;
+}
+
+.matchday-cta-section p {
+  font-size: 1.1rem;
+  margin: 0 0 2rem 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 300;
+  letter-spacing: 0.5px;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 768px) {
+  .matchday-hero-title {
+    font-size: 2.5rem;
+  }
+
+  .matchday-hero-tagline {
+    font-size: 1rem;
+  }
+
+  .matchday-hero-cta {
+    flex-direction: column;
+  }
+
+  .matchday-btn {
+    width: 100%;
+  }
+
+  .matchday-section-header h2 {
+    font-size: 1.75rem;
+  }
+
+  .matchday-cta-section h2 {
+    font-size: 1.75rem;
+  }
+
+  .matchday-featured-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchday-benefits {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .matchday-hero {
+    min-height: 500px;
+  }
+
+  .matchday-hero-title {
+    font-size: 2rem;
+    letter-spacing: 2px;
+  }
+
+  .matchday-hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .matchday-hero-cta {
+    gap: 0.5rem;
+  }
+
+  .matchday-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+
+  .matchday-featured {
+    padding: 2rem 1rem;
+  }
+
+  .matchday-why {
+    padding: 2rem 1rem;
+  }
+
+  .matchday-cta-section {
+    padding: 2rem 1rem;
+  }
+}
+
+/* ========== SHOP PAGE STYLES ========== */
+.matchday-shop {
+  background: var(--matchday-bg);
+}
+
+.matchday-shop-header {
+  background: linear-gradient(135deg, var(--matchday-primary) 0%, var(--matchday-secondary) 100%);
+  color: var(--matchday-text);
+  padding: 3rem 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.matchday-shop-header h1 {
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin: 0 0 0.5rem 0;
+  letter-spacing: 1px;
+}
+
+.matchday-shop-header p {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 300;
+}
+
+.matchday-shop-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 2rem 4rem 2rem;
+}
+
+/* ========== SIDEBAR FILTERS ========== */
+.matchday-filters {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.matchday-filters-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--matchday-border);
+}
+
+.matchday-filters-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--matchday-primary);
+}
+
+.matchday-reset-filters {
+  background: none;
+  border: none;
+  color: var(--matchday-accent);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+}
+
+.matchday-reset-filters:hover {
+  color: var(--matchday-accent-light);
+}
+
+.matchday-filter-group {
+  margin-bottom: 1.5rem;
+}
+
+.matchday-filter-group h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem 0;
+  color: var(--matchday-primary);
+  letter-spacing: 0.5px;
+}
+
+.matchday-filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.matchday-filter-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #333;
+  transition: color 0.3s ease;
+}
+
+.matchday-filter-label input[type='radio'] {
+  margin-right: 0.5rem;
+  cursor: pointer;
+  accent-color: var(--matchday-accent);
+}
+
+.matchday-filter-label:hover {
+  color: var(--matchday-accent);
+}
+
+.matchday-price-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.matchday-price-inputs input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--matchday-border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.matchday-price-range {
+  width: 100%;
+  accent-color: var(--matchday-accent);
+}
+
+/* ========== MAIN CONTENT ========== */
+.matchday-shop-main {
+  min-height: 500px;
+}
+
+.matchday-sort-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.matchday-results-count {
+  font-size: 0.95rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.matchday-sort-select {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--matchday-border);
+  border-radius: 4px;
+  background: white;
+  color: var(--matchday-primary);
+  cursor: pointer;
+  font-weight: 500;
+  transition: border-color 0.3s ease;
+}
+
+.matchday-sort-select:hover {
+  border-color: var(--matchday-accent);
+}
+
+.matchday-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ========== PRODUCT CARD ========== */
+.matchday-product-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.matchday-product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 24px rgba(233, 69, 96, 0.15);
+}
+
+.matchday-product-image-wrapper {
+  position: relative;
+  height: 280px;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--matchday-primary), var(--matchday-secondary));
+}
+
+.matchday-product-image {
+  width: 100%;
+  height: 100%;
+  transition: transform 0.3s ease;
+}
+
+.matchday-product-card:hover .matchday-product-image {
+  transform: scale(1.05);
+}
+
+.matchday-product-sale-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: var(--matchday-accent);
+  color: white;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+}
+
+.matchday-product-sold-out {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.matchday-product-info {
+  padding: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.matchday-product-team {
+  font-size: 0.8rem;
+  color: var(--matchday-accent);
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.matchday-product-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--matchday-primary);
+  line-height: 1.3;
+  min-height: 2.6em;
+}
+
+.matchday-product-price-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.matchday-product-price {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--matchday-accent);
+  letter-spacing: 0.5px;
+}
+
+.matchday-product-compare {
+  font-size: 0.85rem;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.matchday-product-details {
+  margin: 0.75rem 0;
+  flex: 1;
+}
+
+.matchday-product-sizes {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.matchday-size-tag {
+  background: rgba(26, 26, 46, 0.1);
+  color: var(--matchday-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.matchday-size-more {
+  background: transparent;
+  border: 1px solid rgba(26, 26, 46, 0.3);
+}
+
+.matchday-product-colors {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.matchday-color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.matchday-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.matchday-product-btn {
+  margin-top: auto;
+  padding: 0.75rem;
+  background: var(--matchday-accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.matchday-product-btn:hover:not(.disabled) {
+  background: var(--matchday-accent-light);
+  transform: translateY(-2px);
+}
+
+.matchday-product-btn.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.matchday-no-results {
+  grid-column: 1 / -1;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: white;
+  border-radius: 8px;
+  color: #666;
+}
+
+/* ========== RESPONSIVE DESIGN ========== */
+@media (max-width: 1024px) {
+  .matchday-shop-layout {
+    grid-template-columns: 220px 1fr;
+    gap: 1.5rem;
+  }
+
+  .matchday-filters {
+    padding: 1.25rem;
+  }
+
+  .matchday-products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .matchday-shop-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .matchday-filters {
+    position: static;
+  }
+
+  .matchday-products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+
+  .matchday-sort-bar {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .matchday-product-image-wrapper {
+    height: 220px;
+  }
+
+  .matchday-shop-header h1 {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .matchday-shop-layout {
+    padding: 0 1rem 2rem 1rem;
+  }
+
+  .matchday-products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .matchday-sort-bar {
+    width: 100%;
+  }
+
+  .matchday-filter-group {
+    margin-bottom: 1rem;
+  }
+}
+
+/* ========== LOADING & ERROR STATES ========== */
+.matchday-loading,
+.matchday-error {
+  grid-column: 1 / -1;
+  padding: 4rem 2rem;
+  text-align: center;
+  background: white;
+  border-radius: 8px;
+  color: #666;
+}
+
+.matchday-loading p {
+  font-size: 1.1rem;
+  color: var(--matchday-primary);
+  font-weight: 500;
+}
+
+.matchday-error {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  color: var(--matchday-primary);
+}
+
+.matchday-error p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* ── Hero jersey marquee ─────────────────────────────────────────── */
+.aw-marquee-wrap {
+  margin-top: 28px;
+  overflow: hidden;
+  width: 100%;
+  padding-bottom: 32px;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
+}
+.aw-marquee {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: aw-marquee 30s linear infinite;
+}
+.aw-marquee:hover { animation-play-state: paused; }
+.aw-marquee-item {
+  flex: 0 0 auto;
+  width: 118px;
+  height: 148px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+.aw-marquee-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+@keyframes aw-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aw-marquee { animation: none; }
+}

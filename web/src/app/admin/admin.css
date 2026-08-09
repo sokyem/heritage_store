@@ -1,0 +1,202 @@
+/* ═══════════════════════════════════════════════════════════════
+   Admin-only utilities. Imported once from src/app/admin/layout.tsx
+   so storefront pages never receive these rules.
+
+   Token references come from src/app/globals.css (--aw-*).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   Compact, data-dense admin theme.
+
+   Scoped under `.admin-shell` (set on the AdminShell root) so it only
+   reskins admin pages — the storefront keeps its airy, luxury sizing.
+   These rules are unlayered, so they reliably win over Tailwind v4
+   utility classes (which sit in the `utilities` cascade layer).
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Slightly tighter base rhythm inside admin content. */
+.admin-shell main {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Buttons: smaller, less shouty than the storefront's luxury CTA ── */
+.admin-shell .btn-primary,
+.admin-shell .btn-outline,
+.admin-shell .btn-accent {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  border-radius: var(--aw-radius-md);
+  border-width: 1px;
+}
+.admin-shell .btn-primary:hover { box-shadow: var(--aw-shadow-sm); }
+
+/* A truly compact button for inline/table actions. */
+.admin-shell .btn-xs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--aw-radius-sm);
+  border: 1px solid var(--aw-border-strong);
+  background: var(--aw-surface);
+  color: var(--aw-text-strong);
+  cursor: pointer;
+  transition: background-color var(--aw-duration-fast) var(--aw-ease),
+    border-color var(--aw-duration-fast) var(--aw-ease);
+}
+.admin-shell .btn-xs:hover { background: var(--aw-surface-muted); }
+
+/* ── Inputs / selects: denser fields ── */
+.admin-shell .input-field {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  border-radius: var(--aw-radius-md);
+  border-color: var(--aw-border);
+}
+.admin-shell .input-field:hover { border-color: var(--aw-border-strong); }
+.admin-shell .input-field:focus {
+  border-color: var(--aw-navy);
+  box-shadow: 0 0 0 3px rgba(27, 42, 91, 0.08);
+}
+
+/* ── Cards: soft shadow + rounder corners + crisp hover lift ── */
+.admin-shell .card,
+.admin-shell .card-luxury {
+  border-radius: var(--aw-radius-lg);
+  box-shadow: var(--aw-shadow-sm);
+  transition: box-shadow var(--aw-duration-base) var(--aw-ease),
+    border-color var(--aw-duration-base) var(--aw-ease),
+    transform var(--aw-duration-base) var(--aw-ease);
+}
+.admin-shell .card:hover,
+.admin-shell .card-luxury:hover {
+  box-shadow: var(--aw-shadow-md);
+  border-color: var(--aw-border-strong);
+}
+
+/* A reusable surface panel for dense list/table blocks. */
+.admin-shell .aw-panel {
+  background: var(--aw-surface);
+  border: 1px solid var(--aw-border);
+  border-radius: var(--aw-radius-lg);
+  box-shadow: var(--aw-shadow-sm);
+  overflow: hidden;
+}
+
+/* Compact stat chip used in page header strips. */
+.admin-shell .aw-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  background: var(--aw-surface);
+  border: 1px solid var(--aw-border);
+  border-radius: var(--aw-radius-md);
+}
+.admin-shell .aw-stat dt {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--aw-text-muted);
+}
+.admin-shell .aw-stat dd {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--aw-text-strong);
+}
+
+/* Dense pill badge (status, season, counts). */
+.admin-shell .aw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: var(--aw-radius-pill);
+  line-height: 1.4;
+}
+
+/* ───────── Skeleton shimmer ─────────
+   Used by SkeletonRow / SkeletonCard / SkeletonStat to replace the
+   old `.loading-spinner` block. Background sits over a base tint
+   that matches the surface-muted color so the shimmer reads as
+   "content placeholder", not "broken element". */
+@keyframes aw-skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.aw-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--aw-surface-muted) 0%,
+    var(--aw-cream) 50%,
+    var(--aw-surface-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: aw-skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--aw-radius-sm);
+}
+
+/* ───────── Focus outline ─────────
+   Replaces the default browser outline on interactive primitives
+   so we get a consistent navy ring across every admin page. */
+.aw-focus:focus-visible {
+  outline: 2px solid var(--aw-navy);
+  outline-offset: 2px;
+  border-radius: var(--aw-radius-sm);
+}
+
+/* ───────── Table row hover ─────────
+   Cards inside the admin use this to highlight the hovered row
+   without redefining the transition on every page. */
+.aw-table-hover tr {
+  transition: background-color var(--aw-duration-fast) var(--aw-ease);
+}
+.aw-table-hover tr:hover {
+  background-color: var(--aw-surface-muted);
+}
+
+/* ───────── Back-compat spinner shim ─────────
+   Several admin pages still render <div class="loading-spinner" />
+   from before the Skeleton component existed. Map it to the same
+   shimmer animation so the loading state reads consistently while
+   the sweep is in progress. Remove once Phase 7 lands. */
+.loading-spinner {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  border: 3px solid var(--aw-cream);
+  border-top-color: var(--aw-navy);
+  animation: aw-spin 0.9s linear infinite;
+}
+
+@keyframes aw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ───────── Sortable header arrow ─────────
+   Used by <SortableHeader> when toggling sort direction. The arrow
+   sits in a sibling span and rotates instead of swapping characters
+   so the layout doesn't shift. */
+.aw-sort-arrow {
+  display: inline-block;
+  transition: transform var(--aw-duration-fast) var(--aw-ease);
+}
+.aw-sort-arrow[data-dir='desc'] {
+  transform: rotate(180deg);
+}

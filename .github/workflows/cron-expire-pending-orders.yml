@@ -1,0 +1,25 @@
+name: cron-expire-pending-orders
+
+# Marks never-paid storefront "pending" orders older than 7 days as "abandoned"
+# so the admin Storefront Orders list isn't cluttered with dead checkout
+# attempts. No customer-facing effect (no emails). The payment + checkout-init
+# handlers already clean up a buyer's leftover attempts in real time; this
+# sweeps the long tail from customers who never return.
+#
+# Optional repo secret CRON_SECRET; if the app's CRON_SECRET env var is unset
+# the endpoint runs without auth (matching the other cron-* workflows).
+
+on:
+  schedule:
+    - cron: '30 3 * * *' # daily at 03:30 UTC
+  workflow_dispatch: {} # allow manual "Run workflow" from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/expire-pending-orders
+        run: |
+          curl -fsS -X POST "https://www.awulak.com/api/cron/expire-pending-orders" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP %{http_code}\n"
